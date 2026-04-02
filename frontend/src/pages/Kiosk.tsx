@@ -3,51 +3,76 @@ import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface Room {
+  id: string;
+  name: string;
+  number: string;
+  defaultPassType: string;
+}
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  studentId: string;
+}
+
 const Kiosk: React.FC = () => {
-  const [students, setStudents] = useState<any[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [kioskRoom, setKioskRoom] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [kioskRoom, setKioskRoom] = useState<Room | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { login } = useAuth();
+
+  const fetchData = async () => {
+    try {
+      const resRooms = await api.get('/rooms');
+      setRooms(resRooms.data);
+      const resStudents = await api.get('/users/students');
+      setStudents(resStudents.data);
+    } catch (error) {
+      console.error('Failed to fetch kiosk data:', error);
+    }
+  };
 
   useEffect(() => {
     fetchData();
     const storedRoom = localStorage.getItem('kiosk_room');
     if (storedRoom) setKioskRoom(JSON.parse(storedRoom));
+
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  const fetchData = async () => {
-    const resRooms = await api.get('/rooms');
-    setRooms(resRooms.data);
-    const resStudents = await api.get('/users/students');
-    setStudents(resStudents.data);
-  };
-
-  const handleKioskSetup = (room: any) => {
+  const handleKioskSetup = (room: Room) => {
     setKioskRoom(room);
     localStorage.setItem('kiosk_room', JSON.stringify(room));
   };
 
-  const handleStudentSelect = async (student: any) => {
+  const handleStudentSelect = async (student: Student) => {
     setSelectedStudent(student);
     try {
       const res = await api.post('/auth/kiosk/login', { studentId: student.studentId });
       login(res.data.token, res.data.user);
-      // Wait for student to select destination
-    } catch (err) {
+    } catch {
       alert('Login failed');
     }
   };
 
-  const handlePassRequest = async (toRoom: any, toRoomId: string) => {
+  const handlePassRequest = async (toRoom: Room, toRoomId: string) => {
+    if (!kioskRoom) return;
     try {
       await api.post('/passes/request', { fromRoomId: kioskRoom.id, toRoomId, type: toRoom.defaultPassType });
       alert('Pass requested! You are good to go.');
       setSelectedStudent(null);
-      // Logout student but keep kiosk mode active
       localStorage.removeItem('token');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to request pass');
+    } catch (err: unknown) {
+      const errorMessage =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to request pass';
+      alert(errorMessage || 'Failed to request pass');
     }
   };
 
@@ -91,8 +116,12 @@ const Kiosk: React.FC = () => {
             <p className="text-3xl text-slate-400 font-bold mt-2 uppercase tracking-wide">{kioskRoom.name}</p>
           </div>
           <div className="text-right">
-            <div className="text-5xl font-mono font-black tracking-tighter">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-            <div className="text-slate-500 uppercase tracking-[0.2em] font-bold text-sm mt-1">{new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+            <div className="text-5xl font-mono font-black tracking-tighter">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </div>
+            <div className="text-slate-500 uppercase tracking-[0.2em] font-bold text-sm mt-1">
+              {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+            </div>
           </div>
         </motion.header>
 
