@@ -18,7 +18,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 // Admin-only: Create/Update room
 router.post('/', authMiddleware, roleMiddleware(['ADMIN']), async (req, res) => {
-  const { name, number, teacherId, isClosed, approvalRequired, capacity } = req.body;
+  const { name, number, teacherId, isClosed, approvalRequired, capacity, defaultPassType } = req.body;
 
   try {
     const room = await prisma.room.create({
@@ -28,13 +28,25 @@ router.post('/', authMiddleware, roleMiddleware(['ADMIN']), async (req, res) => 
         teacherId: teacherId || null,
         isClosed: isClosed || false,
         approvalRequired: approvalRequired ?? true,
-        capacity: capacity || 0
+        capacity: capacity || 0,
+        defaultPassType: defaultPassType || 'ROUND_TRIP'
       },
     });
     res.status(201).json(room);
   } catch (error) {
     console.error('Create room error:', error);
     res.status(500).json({ message: 'Failed to create room' });
+  }
+});
+
+// Admin-only: Delete Room
+router.delete('/:id', authMiddleware, roleMiddleware(['ADMIN']), async (req: any, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.room.delete({ where: { id } });
+    res.json({ message: 'Room deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete room' });
   }
 });
 

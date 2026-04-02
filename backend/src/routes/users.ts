@@ -38,6 +38,18 @@ router.get('/students', authMiddleware, roleMiddleware(['ADMIN', 'HALL_MONITOR',
   }
 });
 
+// Admin-only: Get all users
+router.get('/', authMiddleware, roleMiddleware(['ADMIN', 'HALL_MONITOR']), async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: { room: true },
+    });
+    res.json(users.map(({ password, ...u }) => u));
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Admin-only: CSV Import Students
 router.post('/import-students', authMiddleware, roleMiddleware(['ADMIN']), async (req, res) => {
   const { csvContent } = req.body;
@@ -105,6 +117,17 @@ router.post('/unblock', authMiddleware, roleMiddleware(['ADMIN']), async (req, r
     res.json({ message: 'Encounter prevention removed' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to unblock students' });
+  }
+});
+
+// Admin-only: Delete User
+router.delete('/:id', authMiddleware, roleMiddleware(['ADMIN']), async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.user.delete({ where: { id } });
+    res.json({ message: 'User deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete user' });
   }
 });
 

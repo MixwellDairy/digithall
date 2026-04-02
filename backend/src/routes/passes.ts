@@ -4,10 +4,15 @@ import { authMiddleware, roleMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-// Student: Request a pass
-router.post('/request', authMiddleware, roleMiddleware(['STUDENT']), async (req: any, res) => {
-  const { fromRoomId, toRoomId, type, scheduledTime } = req.body;
-  const studentId = req.user.id;
+// Student/Staff: Request a pass
+router.post('/request', authMiddleware, roleMiddleware(['STUDENT', 'TEACHER', 'ADMIN', 'HALL_MONITOR']), async (req: any, res) => {
+  const { fromRoomId, toRoomId, type, scheduledTime, studentId: targetStudentId } = req.body;
+  const studentId = targetStudentId || req.user.id;
+
+  // If a non-student is requesting, ensure they provided a studentId
+  if (req.user.role !== 'STUDENT' && !targetStudentId) {
+    return res.status(400).json({ message: 'Target student required' });
+  }
 
   try {
     const fromRoom = await prisma.room.findUnique({ where: { id: fromRoomId } });
@@ -75,7 +80,9 @@ router.post('/request', authMiddleware, roleMiddleware(['STUDENT']), async (req:
       return res.status(403).json({ message: `Daily pass limit of ${dailyLimit} reached.` });
     }
 
-    const status = scheduledTime ? 'PENDING' : (toRoom.approvalRequired ? 'PENDING' : 'ACTIVE');
+    // If staff is creating the pass, auto-approve it
+    const isStaff = ['TEACHER', 'ADMIN', 'HALL_MONITOR'].includes(req.user.role);
+    const status = scheduledTime ? 'PENDING' : (isStaff ? 'ACTIVE' : (toRoom.approvalRequired ? 'PENDING' : 'ACTIVE'));
     const startTime = (status === 'ACTIVE' && !scheduledTime) ? new Date() : null;
 
     const pass = await prisma.pass.create({
@@ -150,7 +157,17 @@ router.get('/export', authMiddleware, roleMiddleware(['ADMIN']), async (req, res
 
     const header = 'Student,Student ID,From,To,Type,Status,Start Time,End Time\n';
     const rows = passes.map(p => {
-      return `${p.student.firstName} ${p.student.lastName},${p.student.studentId},${p.fromRoom.name},${p.toRoom.name},${p.type},${p.status},${p.startTime?.toISOString() || ''},${p.endTime?.toISOString() || ''}`;
+      const escape = (str: string) => `"${(str || '').replace(/"/g, '""')}"`;
+      return [
+        escape(`${p.student.firstName} ${p.student.lastName}`),
+        escape(p.student.studentId || ''),
+        escape(p.fromRoom.name),
+        escape(p.toRoom.name),
+        escape(p.type),
+        escape(p.status),
+        escape(p.startTime?.toISOString() || ''),
+        escape(p.endTime?.toISOString() || '')
+      ].join(',');
     }).join('\n');
 
     res.header('Content-Type', 'text/csv');

@@ -57,6 +57,7 @@ model Room {
   isClosed         Boolean  @default(false)
   approvalRequired Boolean  @default(true)
   capacity         Int      @default(0) // 0 means unlimited
+  defaultPassType  PassType @default(ROUND_TRIP)
   passesTo         Pass[]   @relation("PassToRoom")
   passesFrom       Pass[]   @relation("PassFromRoom")
   createdAt        DateTime @default(now())

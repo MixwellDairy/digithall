@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
 
 const Login: React.FC = () => {
   const [studentId, setStudentId] = useState('');
@@ -22,9 +23,20 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-3xl font-bold text-center text-blue-600 mb-6">DigiHall Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 bg-gradient-to-br from-blue-50 to-slate-200">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 border border-white/20 backdrop-blur-sm"
+      >
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-4 rotate-3">
+             <span className="text-white text-3xl font-black">D</span>
+          </div>
+          <h2 className="text-4xl font-black text-center text-slate-900 tracking-tight">DigiHall <span className="text-blue-600">Login</span></h2>
+          <p className="text-slate-400 mt-2 text-sm font-medium">Digital Pass System for Modern Schools</p>
+        </div>
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -49,12 +61,12 @@ const Login: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-100 mt-6 active:scale-95"
           >
-            Login
+            Login to DigiHall
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };
