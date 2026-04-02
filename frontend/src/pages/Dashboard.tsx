@@ -97,8 +97,16 @@ const Dashboard: React.FC = () => {
   };
 
   const handlePassUpdate = async (passId: string, status: string) => {
-    await api.put(`/passes/${passId}/status`, { status });
-    fetchData();
+    try {
+      await api.put(`/passes/${passId}/status`, { status });
+      fetchData();
+    } catch (err: unknown) {
+      const errorMessage =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Failed to update pass';
+      alert(errorMessage || 'Failed to update pass');
+    }
   };
 
   const toggleRoomStatus = async () => {
@@ -146,7 +154,11 @@ const Dashboard: React.FC = () => {
           {user?.role === 'ADMIN' && (
             <a href="/admin" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Admin Panel</a>
           )}
-          <button onClick={logout} className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl font-bold transition-colors">
+          <button
+            onClick={logout}
+            aria-label="Logout"
+            className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl font-bold transition-colors"
+          >
             <LogOut size={20} /> Logout
           </button>
         </div>
@@ -166,8 +178,9 @@ const Dashboard: React.FC = () => {
                 <div className="text-3xl font-black text-blue-600">{dailyCredits} <span className="text-sm text-gray-400">/ {dailyLimit}</span></div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <span className="text-sm font-medium">My Current Room:</span>
+                <label htmlFor="currentRoomSelect" className="text-sm font-medium">My Current Room:</label>
                 <select
+                  id="currentRoomSelect"
                   value={currentRoom}
                   onChange={(e) => {
                     setCurrentRoom(e.target.value);
@@ -323,8 +336,9 @@ const Dashboard: React.FC = () => {
               <h2 className="text-xl font-black mb-6 uppercase tracking-tight">Issue Student Pass</h2>
               <form onSubmit={handleStaffPassSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Student</label>
+                  <label htmlFor="staffStudentSelect" className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Student</label>
                   <select
+                    id="staffStudentSelect"
                     className="w-full border border-slate-100 bg-slate-50 rounded-xl p-3 font-bold"
                     value={staffPassForm.studentId}
                     onChange={e => setStaffPassForm({...staffPassForm, studentId: e.target.value})}
@@ -335,8 +349,9 @@ const Dashboard: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Destination</label>
+                  <label htmlFor="staffRoomSelect" className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Destination</label>
                   <select
+                    id="staffRoomSelect"
                     className="w-full border border-slate-100 bg-slate-50 rounded-xl p-3 font-bold"
                     value={staffPassForm.toRoomId}
                     onChange={e => setStaffPassForm({...staffPassForm, toRoomId: e.target.value})}

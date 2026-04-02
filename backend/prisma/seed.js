@@ -18,7 +18,17 @@ async function main() {
     },
   });
 
-  console.log('Seeded database with admin user (admin / admin123)');
+  await prisma.room.upsert({
+    where: { number: '101' },
+    update: {},
+    create: {
+      name: 'General Office',
+      number: '101',
+      capacity: 10,
+    }
+  });
+
+  console.log('Seeded database with admin user (admin / admin123) and room 101');
 }
 
 main()
