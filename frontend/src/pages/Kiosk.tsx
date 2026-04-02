@@ -69,38 +69,55 @@ const Kiosk: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-blue-500 text-white p-8">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl font-extrabold mb-4 uppercase">Kiosk: {kioskRoom.name}</h1>
-        <p className="text-xl mb-8">Tap your name to request a pass</p>
+    <div className="min-h-screen bg-slate-950 text-white p-8 font-sans">
+      <div className="max-w-6xl mx-auto">
+        <header className="flex justify-between items-end mb-12 border-b border-white/10 pb-6">
+          <div>
+            <h1 className="text-5xl font-black uppercase tracking-tighter text-blue-500">Kiosk</h1>
+            <p className="text-2xl text-slate-400 font-medium">{kioskRoom.name}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-4xl font-mono font-bold">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="text-slate-500 uppercase tracking-widest text-sm">{new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+          </div>
+        </header>
 
         {!selectedStudent ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {students.map((student) => (
               <button
                 key={student.id}
                 onClick={() => handleStudentSelect(student)}
-                className="bg-white text-blue-800 p-6 rounded-xl shadow-lg font-bold text-lg hover:scale-105 transition"
+                className="bg-slate-900 border-2 border-slate-800 text-white p-8 rounded-2xl shadow-xl font-bold text-xl hover:border-blue-500 hover:bg-slate-800 hover:-translate-y-1 transition-all"
               >
+                <div className="text-blue-500 text-xs uppercase mb-1 opacity-50">{student.studentId}</div>
                 {student.firstName} {student.lastName}
               </button>
             ))}
           </div>
         ) : (
-          <div>
-            <h2 className="text-3xl font-bold mb-6">Where are you going, {selectedStudent.firstName}?</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="mb-12">
+              <h2 className="text-5xl font-bold mb-2">Hello, {selectedStudent.firstName}!</h2>
+              <p className="text-2xl text-slate-400">Where are you headed?</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
               {rooms.filter(r => r.id !== kioskRoom.id).map((room) => (
                 <button
                   key={room.id}
                   onClick={() => handlePassRequest(room.id)}
-                  className="bg-green-600 p-6 rounded-xl shadow-lg font-bold text-xl hover:bg-green-700 transition"
+                  className="bg-blue-600 border-b-4 border-blue-800 p-10 rounded-2xl shadow-2xl font-black text-2xl hover:bg-blue-500 hover:-translate-y-1 active:translate-y-1 active:border-b-0 transition-all uppercase tracking-tight"
                 >
                   {room.name}
                 </button>
               ))}
             </div>
-            <button onClick={() => setSelectedStudent(null)} className="mt-8 text-xl underline opacity-75">Cancel</button>
+            <button
+              onClick={() => setSelectedStudent(null)}
+              className="mt-16 bg-slate-800 text-slate-400 px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-slate-700 hover:text-white transition-colors"
+            >
+              Go Back
+            </button>
           </div>
         )}
       </div>

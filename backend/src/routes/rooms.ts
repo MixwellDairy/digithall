@@ -22,10 +22,18 @@ router.post('/', authMiddleware, roleMiddleware(['ADMIN']), async (req, res) => 
 
   try {
     const room = await prisma.room.create({
-      data: { name, number, teacherId, isClosed, approvalRequired, capacity },
+      data: {
+        name,
+        number: number || null,
+        teacherId: teacherId || null,
+        isClosed: isClosed || false,
+        approvalRequired: approvalRequired ?? true,
+        capacity: capacity || 0
+      },
     });
     res.status(201).json(room);
   } catch (error) {
+    console.error('Create room error:', error);
     res.status(500).json({ message: 'Failed to create room' });
   }
 });

@@ -224,11 +224,11 @@ const AdminPanel: React.FC = () => {
             <form onSubmit={createRoom} className="bg-white p-6 rounded-lg shadow-sm grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
               <div>
                 <label className="block text-sm font-medium">Room Name</label>
-                <input type="text" className="w-full border p-2 rounded" value={newRoom.name} onChange={(e) => setNewRoom({...newRoom, name: e.target.value})} required />
+                <input name="roomName" type="text" className="w-full border p-2 rounded" value={newRoom.name} onChange={(e) => setNewRoom({...newRoom, name: e.target.value})} required />
               </div>
               <div>
                 <label className="block text-sm font-medium">Number</label>
-                <input type="text" className="w-full border p-2 rounded" value={newRoom.number} onChange={(e) => setNewRoom({...newRoom, number: e.target.value})} />
+                <input name="roomNumber" type="text" className="w-full border p-2 rounded" value={newRoom.number} onChange={(e) => setNewRoom({...newRoom, number: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm font-medium">Capacity</label>

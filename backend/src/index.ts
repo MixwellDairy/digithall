@@ -52,8 +52,26 @@ setInterval(async () => {
       });
       io.emit('pass-updated', pass);
     }
+
+    // Overtime check (duration limit exceeded)
+    const active = await prisma.pass.findMany({
+      where: { status: 'ACTIVE', startTime: { not: null } }
+    });
+
+    for (const pass of active) {
+      const limit = pass.durationLimit || 15; // default 15 mins
+      const elapsed = (now.getTime() - new Date(pass.startTime!).getTime()) / 60000;
+      if (elapsed > limit && !pass.isOvertime) {
+        await prisma.pass.update({
+          where: { id: pass.id },
+          data: { isOvertime: true }
+        });
+        io.emit('pass-updated', pass);
+      }
+    }
+
   } catch (err) {
-    console.error('Scheduled pass check failed:', err);
+    console.error('Background task failed:', err);
   }
 }, 60000); // Check every minute
 

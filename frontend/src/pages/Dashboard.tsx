@@ -12,6 +12,7 @@ const Dashboard: React.FC = () => {
   const [allActivePasses, setAllActivePasses] = useState<any[]>([]);
   const [passHistory, setPassHistory] = useState<any[]>([]);
   const [dailyCredits, setDailyCredits] = useState(0);
+  const [dailyLimit, setDailyLimit] = useState(5);
   const [currentRoom, setCurrentRoom] = useState<string>(localStorage.getItem('student_location') || '');
   const [roomStatus, setRoomStatus] = useState<any>(null);
 
@@ -36,6 +37,7 @@ const Dashboard: React.FC = () => {
   const fetchData = async () => {
     if (!user) return;
 
+    try {
     const roomsRes = await api.get('/rooms');
     setRooms(roomsRes.data);
 
@@ -47,10 +49,15 @@ const Dashboard: React.FC = () => {
       const historyRes = await api.get('/passes/history');
       setPassHistory(historyRes.data);
 
+      const settingsRes = await api.get('/settings');
+      const limitSetting = settingsRes.data.find((s: any) => s.key === 'DAILY_PASS_LIMIT');
+      const limit = limitSetting ? parseFloat(limitSetting.value) : 5.0;
+      setDailyLimit(limit);
+
       const passCount = historyRes.data
         .filter((p: any) => new Date(p.createdAt).toDateString() === new Date().toDateString())
         .reduce((acc: number, pass: any) => acc + (pass.type === 'ONE_WAY' ? 0.5 : 1.0), 0);
-      setDailyCredits(Math.max(0, 5 - passCount)); // Assuming limit 5 for now
+      setDailyCredits(Math.max(0, limit - passCount));
     }
 
     if (user.role === 'TEACHER' || user.role === 'ADMIN' || user.role === 'HALL_MONITOR') {
@@ -61,6 +68,9 @@ const Dashboard: React.FC = () => {
         const myRoom = roomsRes.data.find((r: any) => r.teacherId === user.id);
         setRoomStatus(myRoom);
       }
+    }
+    } catch (error) {
+      console.error('Fetch error:', error);
     }
   };
 
@@ -107,9 +117,12 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {user?.role === 'STUDENT' && (
           <div className="col-span-full space-y-8">
-            <div className="flex justify-between items-center bg-blue-100 p-4 rounded-lg">
-              <h2 className="text-xl font-bold text-blue-800">Remaining Credits Today: {dailyCredits}</h2>
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-600">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Remaining Credits</h2>
+                <div className="text-3xl font-black text-blue-600">{dailyCredits} <span className="text-sm text-gray-400">/ {dailyLimit}</span></div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
                 <span className="text-sm font-medium">My Current Room:</span>
                 <select
                   value={currentRoom}
@@ -197,10 +210,11 @@ const Dashboard: React.FC = () => {
                 </thead>
                 <tbody>
                   {allActivePasses.map((pass) => (
-                    <tr key={pass.id} className="border-b hover:bg-gray-50">
+                    <tr key={pass.id} className={`border-b hover:bg-gray-50 ${pass.isOvertime ? 'bg-red-50' : ''}`}>
                       <td className="py-3 font-medium">
                         {pass.student.firstName} {pass.student.lastName}
                         {pass.student.isFlagged && <span className="ml-2 text-red-500 font-bold" title={pass.student.flagReason}>⚠️</span>}
+                        {pass.isOvertime && <span className="ml-2 bg-red-600 text-white text-[10px] px-1 rounded">LATE</span>}
                       </td>
                       <td className="py-3">{pass.fromRoom.name}</td>
                       <td className="py-3">{pass.toRoom.name}</td>
