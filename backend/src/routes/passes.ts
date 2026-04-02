@@ -15,8 +15,10 @@ router.post('/request', authMiddleware, roleMiddleware(['STUDENT', 'TEACHER', 'A
   }
 
   try {
-    const fromRoom = await prisma.room.findUnique({ where: { id: fromRoomId } });
-    const toRoom = await prisma.room.findUnique({ where: { id: toRoomId } });
+    const [fromRoom, toRoom] = await Promise.all([
+      prisma.room.findUnique({ where: { id: fromRoomId } }),
+      prisma.room.findUnique({ where: { id: toRoomId } })
+    ]);
 
     if (!fromRoom || !toRoom) {
       return res.status(404).json({ message: 'Room not found' });
@@ -36,38 +38,46 @@ router.post('/request', authMiddleware, roleMiddleware(['STUDENT', 'TEACHER', 'A
       }
     }
 
-    // Pass Limit Check (Dummy implementation, should be more robust)
+    // Pass Limit Check - Optimized with aggregation
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayPasses = await prisma.pass.findMany({
+    const todayPassesStats = await prisma.pass.groupBy({
+      by: ['type'],
       where: {
         studentId: studentId,
         createdAt: { gte: today },
         status: { in: ['ACTIVE', 'COMPLETED'] },
       },
+      _count: { id: true }
     });
 
-    const passCount = todayPasses.reduce((acc, pass) => acc + (pass.type === 'ONE_WAY' ? 0.5 : 1.0), 0);
+    const passCount = todayPassesStats.reduce((acc, stat) =>
+      acc + (stat.type === 'ONE_WAY' ? 0.5 : 1.0) * stat._count.id, 0);
 
-    // Encounter Prevention Check
-    const activePasses = await prisma.pass.findMany({
-      where: { status: 'ACTIVE' },
-      include: { student: true },
-    });
-
-    const user = await prisma.user.findUnique({
+    // Encounter Prevention Check - Optimized query
+    const userWithBlocks = await prisma.user.findUnique({
       where: { id: studentId },
-      include: { blockedWith: true, blockedBy: true },
+      include: {
+        blockedWith: { select: { id: true } },
+        blockedBy: { select: { id: true } }
+      }
     });
 
-    const blockedIds = new Set([
-      ...(user?.blockedWith.map((u) => u.id) || []),
-      ...(user?.blockedBy.map((u) => u.id) || []),
-    ]);
+    const blockedIds = [
+      ...(userWithBlocks?.blockedWith.map(u => u.id) || []),
+      ...(userWithBlocks?.blockedBy.map(u => u.id) || [])
+    ];
 
-    for (const pass of activePasses) {
-      if (blockedIds.has(pass.studentId)) {
+    if (blockedIds.length > 0) {
+      const conflictingPass = await prisma.pass.findFirst({
+        where: {
+          status: 'ACTIVE',
+          studentId: { in: blockedIds }
+        }
+      });
+
+      if (conflictingPass) {
         return res.status(403).json({ message: 'Encounter prevention: Another student is currently in the hall.' });
       }
     }
