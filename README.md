@@ -19,6 +19,7 @@ DigiHall is a locally hosted, self-hosted alternative to SmartPass for K-12 scho
 2.  Start the system with `start.bat`.
 
 ### macOS / Linux
+On mac run `chmod +x install.sh` first
 1.  Run `./install.sh`.
 2.  Start the system with `./start.sh`.
 
