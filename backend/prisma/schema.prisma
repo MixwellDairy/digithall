@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+  HALL_MONITOR
+}
+
+enum PassStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DENIED
+}
+
+enum PassType {
+  ONE_WAY
+  ROUND_TRIP
+}
+
+model User {
+  id            String   @id @default(uuid())
+  firstName     String
+  lastName      String
+  studentId     String?  @unique
+  grade         String?
+  password      String
+  role          Role     @default(STUDENT)
+  isFlagged     Boolean  @default(false)
+  flagReason    String?
+  room          Room?    @relation("TeacherRoom")
+  roomId        String?  @unique
+  passes        Pass[]   @relation("StudentPasses")
+  approvedPasses Pass[] @relation("ApprovedBy")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Encounter Prevention
+  blockedWith User[] @relation("EncounterPrevention")
+  blockedBy   User[] @relation("EncounterPrevention")
+}
+
+model Room {
+  id               String   @id @default(uuid())
+  name             String
+  number           String?  @unique
+  teacher          User?    @relation("TeacherRoom", fields: [teacherId], references: [id])
+  teacherId        String?  @unique
+  isClosed         Boolean  @default(false)
+  approvalRequired Boolean  @default(true)
+  capacity         Int      @default(0) // 0 means unlimited
+  defaultPassType  PassType @default(ROUND_TRIP)
+  passesTo         Pass[]   @relation("PassToRoom")
+  passesFrom       Pass[]   @relation("PassFromRoom")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Pass {
+  id             String     @id @default(uuid())
+  student        User       @relation("StudentPasses", fields: [studentId], references: [id])
+  studentId      String
+  fromRoom       Room       @relation("PassFromRoom", fields: [fromRoomId], references: [id])
+  fromRoomId     String
+  toRoom         Room       @relation("PassToRoom", fields: [toRoomId], references: [id])
+  toRoomId       String
+  type           PassType
+  status         PassStatus @default(PENDING)
+  startTime      DateTime?
+  endTime        DateTime?
+  durationLimit  Int?       // In minutes
+  isOvertime     Boolean    @default(false)
+  scheduledTime  DateTime?
+  approvedBy     User?      @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedById   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
